@@ -1,13 +1,16 @@
 const express = require("express");
 const path = require("path");
+const cors = require("cors");
 
-import router from "./routes";
+const router = require("./routes");
 
 const app = express();
 
+app.use(cors())
+
 app.use(express.static(path.join(__dirname, "build")));
 
-app.use("/api/v1/route", router);
+app.use("/api/v1", router);
 
 app.get("/", function(req, res) {
     res.sendFile(path.join(__dirname, "build", "index.html"))
