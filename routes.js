@@ -1,7 +1,9 @@
 const express = require("express");
 const router = express.Router();
 
-import controller from "./controller";
+const controller = require("./controller");
+
+router.post("/signup", controller.signup);
 
 router
   .route("/")
