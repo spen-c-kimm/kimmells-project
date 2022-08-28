@@ -56,7 +56,7 @@ const login = async function (req, res) {
             const token = jwt.sign({
                 user
             }, 'secret', { expiresIn: '1h' });
-            return res.send({ success: true, token });
+            return res.send({ success: true, token, userID: user.ID });
         }
 
         return res.send({ success: false, message: "Username or password is incorrect." });
@@ -93,15 +93,17 @@ const validateSession = async function (req, res) {
 const getFeed = async function (req, res) {
     try {
         const posts = await mysqlQuery(`
-        SELECT P.text, P.dateCreated, U.fullName, U.userName, U.ID AS userID
+        SELECT P.text, P.dateCreated, U.fullName, U.userName, P.userID
         FROM posts AS P
         JOIN users AS U On U.ID = P.userID
         WHERE P.repliedToID = 0
         ORDER BY P.dateCreated DESC
         `);
 
+        const users = await mysqlQuery(`SELECT * FROM users`);
+
         if (posts) {
-            return res.send({ success: true, posts });
+            return res.send({ success: true, posts, users });
         } else {
             return res.send({ success: false, message: "No posts found." });
         }
@@ -118,6 +120,8 @@ const getUserPosts = async function (req, res) {
         const params = req.body;
         const userID = params?.userID;
 
+        const user = (await mysqlQuery(`SELECT * FROM users WHERE ID =${userID}`))[0];
+
         const posts = await mysqlQuery(`
         SELECT P.text, P.dateCreated, U.fullName, U.userName, P.userId,
         P2.text AS repliedToText, U2.fullName AS repliedToFullName, U2.userName AS repliedToUserName,
@@ -130,8 +134,8 @@ const getUserPosts = async function (req, res) {
         ORDER BY P.dateCreated DESC
         `);
 
-        if (posts) {
-            return res.send({ success: true, posts });
+        if (posts && user) {
+            return res.send({ success: true, posts, user });
         } else {
             return res.send({ success: false, message: "No posts found." });
         }
