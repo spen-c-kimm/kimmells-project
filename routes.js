@@ -8,5 +8,6 @@ router.post("/login", controller.login);
 router.post("/validateSession", controller.validateSession);
 router.post("/createPost", controller.createPost);
 router.post("/getFeed", controller.getFeed);
+router.post("/getUserPosts", controller.getUserPosts);
 
 module.exports = router;
