@@ -142,6 +142,20 @@ const getUserPosts = async function (req, res) {
         ORDER BY P.dateCreated DESC
         `);
 
+        const likes = await mysqlQuery(`
+        SELECT P.text, P.dateCreated, U.fullName, U.userName, P.userId, P.ID AS postID,
+        P2.text AS repliedToText, U2.fullName AS repliedToFullName, 
+        U2.userName AS repliedToUserName, P2.ID AS repliedToPostID,
+        U2.ID AS repliedToUserID
+        FROM likes AS L 
+        JOIN posts AS P ON P.ID = L.postID
+        JOIN users AS U ON U.ID = P.userID
+        LEFT JOIN posts AS P2 ON P2.ID = P.repliedToID
+        LEFT JOIN users AS U2 ON U2.ID = P2.userID
+        WHERE L.userID = ${userID} AND L.deleted = 0
+        ORDER BY P.dateCreated DESC
+        `);
+
         if (posts && user) {
             return res.send({ success: true, posts, user });
         } else {
@@ -150,7 +164,41 @@ const getUserPosts = async function (req, res) {
     } catch (error) {
         return res.send({
             success: false,
-            message: "There was an error while loading your feed. Please try again later."
+            message: "There was an error while loading the posts. Please try again later."
+        });
+    }
+};
+
+const getUserLikes = async function (req, res) {
+    try {
+
+        const params = req.body;
+        const userID = params?.userID;
+
+        const likes = await mysqlQuery(`
+        SELECT P.text, P.dateCreated, U.fullName, U.userName, P.userId, P.ID AS postID,
+        P2.text AS repliedToText, U2.fullName AS repliedToFullName, 
+        U2.userName AS repliedToUserName, P2.ID AS repliedToPostID,
+        U2.ID AS repliedToUserID
+        FROM likes AS L 
+        JOIN posts AS P ON P.ID = L.postID
+        JOIN users AS U ON U.ID = P.userID
+        LEFT JOIN posts AS P2 ON P2.ID = P.repliedToID
+        LEFT JOIN users AS U2 ON U2.ID = P2.userID
+        WHERE L.userID = ${userID} AND L.deleted = 0
+        ORDER BY P.dateCreated DESC
+        `);
+
+        if (likes) {
+            return res.send({ success: true, likes });
+        } else {
+            return res.send({ success: false, message: "No posts found." });
+        }
+
+    } catch (error) {
+        return res.send({
+            success: false,
+            message: "There was an error while loading the posts. Please try again later."
         });
     }
 };
@@ -212,5 +260,6 @@ module.exports = {
     getFeed,
     getUserPosts,
     createPost,
-    likePost
+    likePost,
+    getUserLikes
 }
