@@ -10,5 +10,6 @@ router.post("/createPost", controller.createPost);
 router.post("/getFeed", controller.getFeed);
 router.post("/getUserPosts", controller.getUserPosts);
 router.post("/likePost", controller.likePost);
+router.post("/getUserLikes", controller.getUserLikes);
 
 module.exports = router;
