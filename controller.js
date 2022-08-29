@@ -195,6 +195,62 @@ const getUserLikes = async function (req, res) {
     }
 };
 
+const getFollowers = async function (req, res) {
+    try {
+
+        const params = req.body;
+        const userID = params?.userID;
+
+        const followers = await mysqlQuery(`
+        SELECT U.* 
+        FROM followers AS F
+        JOIN users AS U ON U.ID = F.followerID
+        WHERE F.followingID = ${userID}
+        `);
+
+        console.log("followers: ", followers)
+
+        if (followers) {
+            return res.send({ success: true, followers });
+        } else {
+            return res.send({ success: false, message: "No followers found." });
+        }
+
+    } catch (error) {
+        return res.send({
+            success: false,
+            message: "There was an error while loading the posts. Please try again later."
+        });
+    }
+};
+
+const getFollowing = async function (req, res) {
+    try {
+
+        const params = req.body;
+        const userID = params?.userID;
+
+        const following = await mysqlQuery(`
+        SELECT U.* 
+        FROM followers AS F
+        JOIN users AS U ON U.ID = F.followingID
+        WHERE F.followerID = ${userID}
+        `);
+
+        if (following) {
+            return res.send({ success: true, following });
+        } else {
+            return res.send({ success: false, message: "No users found." });
+        }
+
+    } catch (error) {
+        return res.send({
+            success: false,
+            message: "There was an error while loading the posts. Please try again later."
+        });
+    }
+};
+
 const createPost = async function (req, res) {
     try {
         const params = req.body;
@@ -347,5 +403,7 @@ module.exports = {
     getUserLikes,
     getReplies,
     followUser,
-    updateBio
+    updateBio,
+    getFollowers,
+    getFollowing
 }
