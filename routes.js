@@ -16,5 +16,7 @@ router.post("/followUser", controller.followUser);
 router.post("/updateBio", controller.updateBio);
 router.post("/getFollowers", controller.getFollowers);
 router.post("/getFollowing", controller.getFollowing);
+router.post("/getPosts", controller.getPosts);
+router.post("/getUsers", controller.getUsers);
 
 module.exports = router;
