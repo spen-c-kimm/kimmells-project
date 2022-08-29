@@ -121,6 +121,53 @@ const getFeed = async function (req, res) {
     }
 };
 
+const getUsers = async function (req, res) {
+    try {
+
+        const users = await mysqlQuery(`SELECT * FROM users`);
+
+        if (users) {
+            return res.send({ success: true, users });
+        } else {
+            return res.send({ success: false, message: "No posts found." });
+        }
+    } catch (error) {
+        return res.send({
+            success: false,
+            message: "There was an error while loading your feed. Please try again later."
+        });
+    }
+};
+
+const getPosts = async function (req, res) {
+    try {
+        const params = req.body;
+        const userID = params?.userID;
+
+        const posts = await mysqlQuery(`
+        SELECT P.text, P.dateCreated, U.fullName, 
+        U.userName, P.userID, P.ID AS postID,
+        CASE WHEN L.deleted = 0 THEN 1 ELSE 0 END AS liked 
+        FROM posts AS P
+        JOIN users AS U On U.ID = P.userID
+        LEFT JOIN likes AS L ON L.userID = ${userID} AND L.postID = P.ID
+        WHERE P.repliedToID = 0
+        ORDER BY P.dateCreated DESC
+        `);
+
+        if (posts) {
+            return res.send({ success: true, posts });
+        } else {
+            return res.send({ success: false, message: "No posts found." });
+        }
+    } catch (error) {
+        return res.send({
+            success: false,
+            message: "There was an error while loading your feed. Please try again later."
+        });
+    }
+};
+
 const getUserPosts = async function (req, res) {
     try {
         const params = req.body;
@@ -378,7 +425,7 @@ const updateBio = async function (req, res) {
         const decoded = jwt.verify(token, 'secret');
         const user = decoded?.user;
 
-        await mysqlQuery(`Update users SET bio = ${params.bio} WHERE ID = ${user.ID}`);
+        await mysqlQuery(`Update users SET bio = '${params.bio}' WHERE ID = ${user.ID}`);
 
         return res.send({
             success: true
@@ -405,5 +452,7 @@ module.exports = {
     followUser,
     updateBio,
     getFollowers,
-    getFollowing
+    getFollowing,
+    getPosts,
+    getUsers
 }
