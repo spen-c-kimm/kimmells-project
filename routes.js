@@ -11,5 +11,8 @@ router.post("/getFeed", controller.getFeed);
 router.post("/getUserPosts", controller.getUserPosts);
 router.post("/likePost", controller.likePost);
 router.post("/getUserLikes", controller.getUserLikes);
+router.post("/getReplies", controller.getReplies);
+router.post("/followUser", controller.followUser);
+router.post("/updateBio", controller.updateBio);
 
 module.exports = router;
