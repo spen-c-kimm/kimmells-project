@@ -125,8 +125,14 @@ const getUserPosts = async function (req, res) {
     try {
         const params = req.body;
         const userID = params?.userID;
+        const followerID = params?.followerID;
 
-        const user = (await mysqlQuery(`SELECT * FROM users WHERE ID =${userID}`))[0];
+        const user = (await mysqlQuery(`
+        SELECT U.*, CASE WHEN F.deleted = 0 THEN 1 ELSE 0 END AS following
+        FROM users AS U
+        LEFT JOIN followers AS F ON F.followerID = ${followerID} AND F.followingID = ${userID}
+        WHERE U.ID =${userID}
+        `))[0];
 
         const posts = await mysqlQuery(`
         SELECT P.text, P.dateCreated, U.fullName, U.userName, P.userId, P.ID AS postID,
@@ -139,20 +145,6 @@ const getUserPosts = async function (req, res) {
         LEFT JOIN users AS U2 ON U2.ID = P2.userID
         LEFT JOIN likes AS L ON L.userID = ${userID} AND L.postID = P.ID
         WHERE P.userID = ${userID} 
-        ORDER BY P.dateCreated DESC
-        `);
-
-        const likes = await mysqlQuery(`
-        SELECT P.text, P.dateCreated, U.fullName, U.userName, P.userId, P.ID AS postID,
-        P2.text AS repliedToText, U2.fullName AS repliedToFullName, 
-        U2.userName AS repliedToUserName, P2.ID AS repliedToPostID,
-        U2.ID AS repliedToUserID
-        FROM likes AS L 
-        JOIN posts AS P ON P.ID = L.postID
-        JOIN users AS U ON U.ID = P.userID
-        LEFT JOIN posts AS P2 ON P2.ID = P.repliedToID
-        LEFT JOIN users AS U2 ON U2.ID = P2.userID
-        WHERE L.userID = ${userID} AND L.deleted = 0
         ORDER BY P.dateCreated DESC
         `);
 
@@ -253,6 +245,97 @@ const likePost = async function (req, res) {
     }
 };
 
+const followUser = async function (req, res) {
+    try {
+        const params = req.body;
+        const followerID = params.followerID
+        const followingID = params.followingID
+
+        const follow = (await mysqlQuery(`SELECT * FROM followers WHERE followerID = ${followerID} AND followingID = ${followingID}`))[0];
+
+        if (follow) {
+            const deleted = follow.deleted === 0 ? 1 : 0;
+            await mysqlQuery(`Update followers SET deleted = ${deleted} WHERE followerID = ${followerID} AND followingID = ${followingID}`);
+        } else {
+            await mysqlQuery(`INSERT INTO followers(followerID,followingID) VALUES('${followerID}','${followingID}')`);
+        }
+
+    } catch (error) {
+        return res.send({
+            success: false,
+            message: "There was an error while creating the post. Please try again later."
+        });
+    }
+};
+
+const getReplies = async function (req, res) {
+    try {
+        const params = req.body;
+        const postID = params?.postID;
+        const userID = params?.userID;
+
+        const post = (await mysqlQuery(`
+        SELECT P.text, P.dateCreated, U.fullName, U.userName, P.userId, P.ID AS postID,
+        P2.text AS repliedToText, U2.fullName AS repliedToFullName, 
+        U2.userName AS repliedToUserName, P2.ID AS repliedToPostID,
+        U2.ID AS repliedToUserID, CASE WHEN L.deleted = 0 THEN 1 ELSE 0 END AS liked
+        FROM posts AS P
+        JOIN users AS U ON U.ID = P.userID
+        LEFT JOIN posts AS P2 ON P2.ID = P.repliedToID
+        LEFT JOIN users AS U2 ON U2.ID = P2.userID
+        LEFT JOIN likes AS L ON L.userID = ${userID} AND L.postID = P.ID
+        WHERE P.ID = ${postID}`))[0];
+
+        const replies = await mysqlQuery(`
+        SELECT P.text, P.dateCreated, U.fullName, U.userName, P.userId, P.ID AS postID,
+        P2.text AS repliedToText, U2.fullName AS repliedToFullName, 
+        U2.userName AS repliedToUserName, P2.ID AS repliedToPostID,
+        U2.ID AS repliedToUserID, CASE WHEN L.deleted = 0 THEN 1 ELSE 0 END AS liked
+        FROM posts AS P
+        JOIN users AS U ON U.ID = P.userID
+        LEFT JOIN posts AS P2 ON P2.ID = P.repliedToID
+        LEFT JOIN users AS U2 ON U2.ID = P2.userID
+        LEFT JOIN likes AS L ON L.userID = ${userID} AND L.postID = P.ID
+        WHERE P.repliedToID = ${postID}
+        ORDER BY P.dateCreated ASC
+        `);
+
+        return res.send({
+            success: true,
+            post,
+            replies
+        });
+
+    } catch (error) {
+        return res.send({
+            success: false,
+            message: "There was an error while loading the posts. Please try again later."
+        });
+    }
+};
+
+const updateBio = async function (req, res) {
+    try {
+        const params = req.body;
+        const token = params.token;
+
+        const decoded = jwt.verify(token, 'secret');
+        const user = decoded?.user;
+
+        await mysqlQuery(`Update users SET bio = ${params.bio} WHERE ID = ${user.ID}`);
+
+        return res.send({
+            success: true
+        });
+
+    } catch (error) {
+        return res.send({
+            success: false,
+            message: "There was an error while adding the bio. Please try again later."
+        });
+    }
+};
+
 module.exports = {
     signup,
     login,
@@ -261,5 +344,8 @@ module.exports = {
     getUserPosts,
     createPost,
     likePost,
-    getUserLikes
+    getUserLikes,
+    getReplies,
+    followUser,
+    updateBio
 }
