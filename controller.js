@@ -123,8 +123,14 @@ const getFeed = async function (req, res) {
 
 const getUsers = async function (req, res) {
     try {
+        const params = req.body;
+        const userID = params?.userID;
 
-        const users = await mysqlQuery(`SELECT * FROM users`);
+        const users = await mysqlQuery(`
+        SELECT U.* , CASE WHEN F.deleted = 0 THEN 1 ELSE 0 END AS following
+        FROM users AS U
+        LEFT JOIN followers AS F ON F.followerID = ${userID} AND F.followingID = U.ID
+        `);
 
         if (users) {
             return res.send({ success: true, users });
@@ -146,12 +152,14 @@ const getPosts = async function (req, res) {
 
         const posts = await mysqlQuery(`
         SELECT P.text, P.dateCreated, U.fullName, 
-        U.userName, P.userID, P.ID AS postID,
+        U.userName, P.userID, P.ID AS postID, P2.text AS repliedToText, U2.fullName AS repliedToFullName, 
+        U2.userName AS repliedToUserName, P2.ID AS repliedToPostID, U2.ID AS repliedToUserID,
         CASE WHEN L.deleted = 0 THEN 1 ELSE 0 END AS liked 
         FROM posts AS P
         JOIN users AS U On U.ID = P.userID
+        LEFT JOIN posts AS P2 ON P2.ID = P.repliedToID
+        LEFT JOIN users AS U2 ON U2.ID = P2.userID
         LEFT JOIN likes AS L ON L.userID = ${userID} AND L.postID = P.ID
-        WHERE P.repliedToID = 0
         ORDER BY P.dateCreated DESC
         `);
 
@@ -181,6 +189,9 @@ const getUserPosts = async function (req, res) {
         WHERE U.ID =${userID}
         `))[0];
 
+        const followersCount = (await mysqlQuery(`SELECT COUNT(ID) AS followersCount FROM followers WHERE followingID = ${userID} AND deleted = 0`))[0]?.followersCount;
+        const followingCount = (await mysqlQuery(`SELECT COUNT(ID) AS followingCount FROM followers WHERE followerID = ${userID} AND deleted = 0`))[0]?.followingCount;
+
         const posts = await mysqlQuery(`
         SELECT P.text, P.dateCreated, U.fullName, U.userName, P.userId, P.ID AS postID,
         P2.text AS repliedToText, U2.fullName AS repliedToFullName, 
@@ -196,7 +207,7 @@ const getUserPosts = async function (req, res) {
         `);
 
         if (posts && user) {
-            return res.send({ success: true, posts, user });
+            return res.send({ success: true, posts, user, followersCount, followingCount });
         } else {
             return res.send({ success: false, message: "No posts found." });
         }
@@ -247,15 +258,17 @@ const getFollowers = async function (req, res) {
 
         const params = req.body;
         const userID = params?.userID;
+        const currentUser = params?.currentUser;
 
         const followers = await mysqlQuery(`
-        SELECT U.* 
+        SELECT U.*, CASE WHEN F2.deleted = 0 THEN 1 ELSE 0 END AS following
         FROM followers AS F
         JOIN users AS U ON U.ID = F.followerID
-        WHERE F.followingID = ${userID}
+        LEFT JOIN followers AS F2 ON F2.followerID = ${currentUser} AND F2.followingID = U.ID
+        WHERE F.followingID = ${userID} AND F.deleted = 0
         `);
 
-        console.log("followers: ", followers)
+        // LEFT JOIN followers AS F ON F.followerID = ${followerID} AND F.followingID = ${userID}
 
         if (followers) {
             return res.send({ success: true, followers });
@@ -276,12 +289,14 @@ const getFollowing = async function (req, res) {
 
         const params = req.body;
         const userID = params?.userID;
+        const currentUser = params?.currentUser;
 
         const following = await mysqlQuery(`
-        SELECT U.* 
+        SELECT U.*, CASE WHEN F2.deleted = 0 THEN 1 ELSE 0 END AS following
         FROM followers AS F
         JOIN users AS U ON U.ID = F.followingID
-        WHERE F.followerID = ${userID}
+        LEFT JOIN followers AS F2 ON F2.followerID = ${currentUser} AND F2.followingID = U.ID
+        WHERE F.followerID = ${userID} AND F.deleted = 0
         `);
 
         if (following) {
@@ -362,6 +377,8 @@ const followUser = async function (req, res) {
         } else {
             await mysqlQuery(`INSERT INTO followers(followerID,followingID) VALUES('${followerID}','${followingID}')`);
         }
+
+        return res.send({ success: true });
 
     } catch (error) {
         return res.send({
