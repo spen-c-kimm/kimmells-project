@@ -436,11 +436,14 @@ const getReplies = async function (req, res) {
 
 const updateBio = async function (req, res) {
     try {
+        console.log("updateBio")
         const params = req.body;
         const token = params.token;
 
         const decoded = jwt.verify(token, 'secret');
         const user = decoded?.user;
+
+        console.log("params.bio: ", params.bio)
 
         await mysqlQuery(`Update users SET bio = '${params.bio}' WHERE ID = ${user.ID}`);
 
@@ -454,6 +457,94 @@ const updateBio = async function (req, res) {
             message: "There was an error while adding the bio. Please try again later."
         });
     }
+};
+
+const deletePost = async function (req, res) {
+    try {
+        const params = req.body;
+        const postID = params.postID;
+        const userID = params.userID;
+
+        const post = (await mysqlQuery(`SELECT * FROM posts WHERE ID = ${postID} AND userID = ${userID}`))[0];
+
+        if (post) {            
+            await mysqlQuery(`DELETE FROM posts WHERE ID = ${postID} AND userID = ${userID}`);
+
+            return res.send({
+                success: true
+            });
+        } else {    
+            console.log("ELSE")        
+            return res.send({
+                success: false,
+                message: "Could not delete the post. Please try again later."
+            });
+        }        
+
+    } catch (error) {
+        return res.send({
+            success: false,
+            message: "Could not delete the post. Please try again later."
+        });
+    }
+};
+
+const deleteProfile = async function (req, res) {
+    try {
+        const params = req.body;
+        const userID = params.userID;
+
+        const user = await mysqlQuery(`SELECT * FROM users WHERE ID = ${userID}`)[0];
+
+        if (user) {
+            await mysqlQuery(`DELETE FROM users WHERE ID = ${userID}`);
+            await mysqlQuery(`DELETE FROM posts WHERE userID = ${userID}`);
+            await mysqlQuery(`DELETE FROM likes WHERE userID = ${userID}`);
+            await mysqlQuery(`DELETE FROM followers WHERE followerID = ${userID} AND following = ${userID}`);
+
+            return res.send({
+                success: true
+            });
+        } else {            
+            return res.send({
+                success: false,
+                message: "Could not delete your profile. Please try again later."
+            });
+        }        
+
+    } catch (error) {
+        return res.send({
+            success: false,
+            message: "Could not delete your profile. Please try again later."
+        });
+    }
+};
+
+const testDelete = async function (req, res) {
+    return res.send({
+        message: "Deleted Successfully"
+    });
+};
+
+const testGet = async function (req, res) {
+
+    const posts = await mysqlQuery("SELECT * FROM posts")
+    return res.send({
+        posts
+    });
+};
+
+const testPut = async function (req, res) {
+    return res.send({
+        message: "Updated Successfully"
+    });
+};
+
+const testPost = async function (req, res) {
+    const posts = await mysqlQuery("SELECT * FROM posts")
+    return res.send({
+        posts
+    });
 };
 
 module.exports = {
@@ -471,5 +562,11 @@ module.exports = {
     getFollowers,
     getFollowing,
     getPosts,
-    getUsers
+    getUsers,
+    deletePost,
+    deleteProfile,
+    testDelete,
+    testGet,
+    testPut,
+    testPost
 }
