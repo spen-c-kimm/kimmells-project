@@ -229,7 +229,7 @@ const getUserLikes = async function (req, res) {
         SELECT P.text, P.dateCreated, U.fullName, U.userName, P.userId, P.ID AS postID,
         P2.text AS repliedToText, U2.fullName AS repliedToFullName, 
         U2.userName AS repliedToUserName, P2.ID AS repliedToPostID,
-        CASE WHEN L.deleted = 0 THEN 1 ELSE 0 END AS liked,
+        1 AS liked,
         U2.ID AS repliedToUserID
         FROM likes AS L 
         JOIN posts AS P ON P.ID = L.postID
@@ -316,7 +316,6 @@ const getFollowing = async function (req, res) {
 
 const createPost = async function (req, res) {
     try {
-        console.log("createPost")
         const params = req.body;
         const token = params.token;
 
@@ -438,14 +437,11 @@ const getReplies = async function (req, res) {
 
 const updateBio = async function (req, res) {
     try {
-        console.log("updateBio")
         const params = req.body;
         const token = params.token;
 
         const decoded = jwt.verify(token, 'secret');
         const user = decoded.user;
-
-        console.log("params.bio: ", params.bio)
 
         await mysqlQuery(`Update users SET bio = '${params.bio}' WHERE ID = ${user.ID}`);
 
@@ -475,8 +471,7 @@ const deletePost = async function (req, res) {
             return res.send({
                 success: true
             });
-        } else {    
-            console.log("ELSE")        
+        } else {           
             return res.send({
                 success: false,
                 message: "Could not delete the post. Please try again later."
