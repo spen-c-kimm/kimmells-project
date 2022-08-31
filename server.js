@@ -43,4 +43,4 @@ app.get("/replies/:postID", function(req, res) {
 });
 
 
-app.listen(20003);
+app.listen(3000);
