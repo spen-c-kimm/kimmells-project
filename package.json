@@ -1,6 +1,10 @@
 {
+  "type": "module",
   "scripts": {
     "start": "node server.js"
+  },
+  "engines": {
+    "node": "10.22.1"
   },
   "dependencies": {
     "bcrypt": "^5.0.1",

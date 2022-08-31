@@ -8,7 +8,7 @@ const signup = async function (req, res) {
 
         const existingUser = await mysqlQuery(`SELECT * FROM users WHERE userName = '${params.userName}'`);
 
-        if (existingUser?.length > 0) {
+        if (existingUser.length > 0) {
             return res.send({
                 success: false,
                 message: "Username is already in use."
@@ -72,7 +72,7 @@ const login = async function (req, res) {
 const validateSession = async function (req, res) {
     try {
         const params = req.body;
-        const token = params?.token;
+        const token = params.token;
 
         const decoded = jwt.verify(token, 'secret');
 
@@ -93,7 +93,7 @@ const validateSession = async function (req, res) {
 const getFeed = async function (req, res) {
     try {
         const params = req.body;
-        const userID = params?.userID;
+        const userID = params.userID;
 
         const posts = await mysqlQuery(`
         SELECT P.text, P.dateCreated, U.fullName, 
@@ -124,7 +124,7 @@ const getFeed = async function (req, res) {
 const getUsers = async function (req, res) {
     try {
         const params = req.body;
-        const userID = params?.userID;
+        const userID = params.userID;
 
         const users = await mysqlQuery(`
         SELECT U.* , CASE WHEN F.deleted = 0 THEN 1 ELSE 0 END AS following
@@ -148,7 +148,7 @@ const getUsers = async function (req, res) {
 const getPosts = async function (req, res) {
     try {
         const params = req.body;
-        const userID = params?.userID;
+        const userID = params.userID;
 
         const posts = await mysqlQuery(`
         SELECT P.text, P.dateCreated, U.fullName, 
@@ -179,8 +179,8 @@ const getPosts = async function (req, res) {
 const getUserPosts = async function (req, res) {
     try {
         const params = req.body;
-        const userID = params?.userID;
-        const followerID = params?.followerID;
+        const userID = params.userID;
+        const followerID = params.followerID;
 
         const user = (await mysqlQuery(`
         SELECT U.*, CASE WHEN F.deleted = 0 THEN 1 ELSE 0 END AS following
@@ -189,8 +189,8 @@ const getUserPosts = async function (req, res) {
         WHERE U.ID =${userID}
         `))[0];
 
-        const followersCount = (await mysqlQuery(`SELECT COUNT(ID) AS followersCount FROM followers WHERE followingID = ${userID} AND deleted = 0`))[0]?.followersCount;
-        const followingCount = (await mysqlQuery(`SELECT COUNT(ID) AS followingCount FROM followers WHERE followerID = ${userID} AND deleted = 0`))[0]?.followingCount;
+        const followersCount = (await mysqlQuery(`SELECT COUNT(ID) AS followersCount FROM followers WHERE followingID = ${userID} AND deleted = 0`))[0].followersCount;
+        const followingCount = (await mysqlQuery(`SELECT COUNT(ID) AS followingCount FROM followers WHERE followerID = ${userID} AND deleted = 0`))[0].followingCount;
 
         const posts = await mysqlQuery(`
         SELECT P.text, P.dateCreated, U.fullName, U.userName, P.userId, P.ID AS postID,
@@ -223,7 +223,7 @@ const getUserLikes = async function (req, res) {
     try {
 
         const params = req.body;
-        const userID = params?.userID;
+        const userID = params.userID;
 
         const likes = await mysqlQuery(`
         SELECT P.text, P.dateCreated, U.fullName, U.userName, P.userId, P.ID AS postID,
@@ -257,8 +257,8 @@ const getFollowers = async function (req, res) {
     try {
 
         const params = req.body;
-        const userID = params?.userID;
-        const currentUser = params?.currentUser;
+        const userID = params.userID;
+        const currentUser = params.currentUser;
 
         const followers = await mysqlQuery(`
         SELECT U.*, CASE WHEN F2.deleted = 0 THEN 1 ELSE 0 END AS following
@@ -288,8 +288,8 @@ const getFollowing = async function (req, res) {
     try {
 
         const params = req.body;
-        const userID = params?.userID;
-        const currentUser = params?.currentUser;
+        const userID = params.userID;
+        const currentUser = params.currentUser;
 
         const following = await mysqlQuery(`
         SELECT U.*, CASE WHEN F2.deleted = 0 THEN 1 ELSE 0 END AS following
@@ -319,7 +319,7 @@ const createPost = async function (req, res) {
         const token = params.token;
 
         const decoded = jwt.verify(token, 'secret');
-        const user = decoded?.user;
+        const user = decoded.user;
 
         if (!user) {
             return res.send({ success: false, message: "Could not create the post. Please try again later." });
@@ -391,8 +391,8 @@ const followUser = async function (req, res) {
 const getReplies = async function (req, res) {
     try {
         const params = req.body;
-        const postID = params?.postID;
-        const userID = params?.userID;
+        const postID = params.postID;
+        const userID = params.userID;
 
         const post = (await mysqlQuery(`
         SELECT P.text, P.dateCreated, U.fullName, U.userName, P.userId, P.ID AS postID,
@@ -441,7 +441,7 @@ const updateBio = async function (req, res) {
         const token = params.token;
 
         const decoded = jwt.verify(token, 'secret');
-        const user = decoded?.user;
+        const user = decoded.user;
 
         console.log("params.bio: ", params.bio)
 
