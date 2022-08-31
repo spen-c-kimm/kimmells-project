@@ -6,7 +6,7 @@ const signup = async function (req, res) {
     try {
         const params = req.body;
 
-        const existingUser = await mysqlQuery(`SELECT * FROM users WHERE userName = '${params.userName}'`);
+        const existingUser = await mysqlQuery(`SELECT * FROM users WHERE userName = "${params.userName}"`);
 
         if (existingUser.length > 0) {
             return res.send({
@@ -17,7 +17,7 @@ const signup = async function (req, res) {
 
         const encryptedPassword = await bcrypt.hash(params.password, 12);
 
-        await mysqlQuery(`INSERT INTO users(userName,fullName,password) VALUES('${params.userName}','${params.fullName}','${encryptedPassword}')`);
+        await mysqlQuery(`INSERT INTO users(userName,fullName,password) VALUES("${params.userName}","${params.fullName}","${encryptedPassword}")`);
         const newUser = (await mysqlQuery(`SELECT * FROM users WHERE ID = LAST_INSERT_ID()`))[0];
 
         if (newUser) {
@@ -41,7 +41,7 @@ const login = async function (req, res) {
     try {
         const params = req.body;
 
-        const user = (await mysqlQuery(`SELECT * FROM users WHERE userName = '${params.userName}'`))[0];
+        const user = (await mysqlQuery(`SELECT * FROM users WHERE userName = "${params.userName}"`))[0];
 
         if (!user) {
             return res.send({ success: false, message: "Username not registered." });
@@ -229,6 +229,7 @@ const getUserLikes = async function (req, res) {
         SELECT P.text, P.dateCreated, U.fullName, U.userName, P.userId, P.ID AS postID,
         P2.text AS repliedToText, U2.fullName AS repliedToFullName, 
         U2.userName AS repliedToUserName, P2.ID AS repliedToPostID,
+        CASE WHEN L.deleted = 0 THEN 1 ELSE 0 END AS liked,
         U2.ID AS repliedToUserID
         FROM likes AS L 
         JOIN posts AS P ON P.ID = L.postID
@@ -315,6 +316,7 @@ const getFollowing = async function (req, res) {
 
 const createPost = async function (req, res) {
     try {
+        console.log("createPost")
         const params = req.body;
         const token = params.token;
 
@@ -325,7 +327,7 @@ const createPost = async function (req, res) {
             return res.send({ success: false, message: "Could not create the post. Please try again later." });
         }
 
-        await mysqlQuery(`INSERT INTO posts(userID,text,repliedToID) VALUES('${user.ID}','${params.text}','${params.repliedToID}')`);
+        await mysqlQuery(`INSERT INTO posts(userID,text,repliedToID) VALUES("${user.ID}","${params.text}","${params.repliedToID}")`);
         const newPost = (await mysqlQuery(`SELECT * FROM posts WHERE ID = LAST_INSERT_ID()`))[0];
 
         if (newPost) {
@@ -352,7 +354,7 @@ const likePost = async function (req, res) {
             const deleted = like.deleted;
             await mysqlQuery(`Update likes SET deleted = ${!deleted} WHERE userID = ${params.userID} AND postID = ${params.postID}`);
         } else {
-            await mysqlQuery(`INSERT INTO likes(userID,postID) VALUES('${params.userID}','${params.postID}')`);
+            await mysqlQuery(`INSERT INTO likes(userID,postID) VALUES("${params.userID}","${params.postID}")`);
         }
 
     } catch (error) {
@@ -375,7 +377,7 @@ const followUser = async function (req, res) {
             const deleted = follow.deleted === 0 ? 1 : 0;
             await mysqlQuery(`Update followers SET deleted = ${deleted} WHERE followerID = ${followerID} AND followingID = ${followingID}`);
         } else {
-            await mysqlQuery(`INSERT INTO followers(followerID,followingID) VALUES('${followerID}','${followingID}')`);
+            await mysqlQuery(`INSERT INTO followers(followerID,followingID) VALUES("${followerID}","${followingID}")`);
         }
 
         return res.send({ success: true });
